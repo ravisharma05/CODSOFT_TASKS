@@ -1,0 +1,36 @@
+﻿# Dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js
+.next/
+out/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Build and coverage
+dist/
+build/
+coverage/
+
+# Logs
+*.log
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local database and secrets
+*.sqlite3
+*.db
