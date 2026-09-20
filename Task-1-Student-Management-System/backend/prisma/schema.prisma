@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+}
+
+enum FeeStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  student Student?
+  teacher Teacher?
+}
+
+model Student {
+  id           Int       @id @default(autoincrement())
+  userId       Int       @unique
+  enrollmentNo String    @unique
+  department   String?
+  semester     Int?
+  phone        String?
+  dateOfBirth  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enrollments Enrollment[]
+  attendance  Attendance[]
+  results     ExamResult[]
+  feeRecords  FeeRecord[]
+}
+
+model Teacher {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @unique
+  employeeNo String   @unique
+  department String?
+  phone      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courses Course[]
+}
+
+model Course {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique
+  name        String
+  description String?
+  credits     Int      @default(3)
+  teacherId   Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  teacher     Teacher?     @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  enrollments Enrollment[]
+  attendance  Attendance[]
+  exams       Exam[]
+}
+
+model Enrollment {
+  id         Int      @id @default(autoincrement())
+  studentId  Int
+  courseId   Int
+  enrolledAt DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course  Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId])
+}
+
+model Attendance {
+  id        Int              @id @default(autoincrement())
+  studentId Int
+  courseId  Int
+  date      DateTime
+  status    AttendanceStatus
+  remarks   String?
+  createdAt DateTime         @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course  Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId, date])
+}
+
+model Exam {
+  id         Int      @id @default(autoincrement())
+  courseId   Int
+  title      String
+  examDate   DateTime
+  totalMarks Int
+  createdAt  DateTime @default(now())
+
+  course  Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  results ExamResult[]
+}
+
+model ExamResult {
+  id        Int      @id @default(autoincrement())
+  examId    Int
+  studentId Int
+  marks     Float
+  grade     String?
+  createdAt DateTime @default(now())
+
+  exam    Exam    @relation(fields: [examId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([examId, studentId])
+}
+
+model FeeRecord {
+  id          Int       @id @default(autoincrement())
+  studentId   Int
+  amount      Decimal   @db.Decimal(10, 2)
+  paidAmount  Decimal   @default(0) @db.Decimal(10, 2)
+  dueDate     DateTime
+  status      FeeStatus @default(PENDING)
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
