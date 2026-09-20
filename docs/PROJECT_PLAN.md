@@ -161,3 +161,187 @@ Next.js Frontend -> Express REST API -> Prisma ORM -> PostgreSQL
 - Biometric attendance
 - Mobile application
 - Advanced analytics
+---
+
+# Database Schema Design
+
+## User
+
+| Field | Type | Description |
+|---|---|---|
+| id | UUID | Primary key |
+| email | String | Unique login email |
+| passwordHash | String | Hashed password |
+| role | Enum | ADMIN, TEACHER, STUDENT |
+| createdAt | DateTime | Creation timestamp |
+| updatedAt | DateTime | Last update timestamp |
+
+## Student
+
+| Field | Type | Description |
+|---|---|---|
+| id | UUID | Primary key |
+| userId | UUID | Reference to User |
+| enrollmentNumber | String | Unique student identifier |
+| firstName | String | Student first name |
+| lastName | String | Student last name |
+| dateOfBirth | DateTime | Date of birth |
+| phone | String | Contact number |
+| createdAt | DateTime | Creation timestamp |
+
+## Teacher
+
+| Field | Type | Description |
+|---|---|---|
+| id | UUID | Primary key |
+| userId | UUID | Reference to User |
+| employeeNumber | String | Unique teacher identifier |
+| firstName | String | Teacher first name |
+| lastName | String | Teacher last name |
+| phone | String | Contact number |
+| createdAt | DateTime | Creation timestamp |
+
+## Course
+
+| Field | Type | Description |
+|---|---|---|
+| id | UUID | Primary key |
+| code | String | Unique course code |
+| name | String | Course name |
+| description | String | Course description |
+| teacherId | UUID | Assigned teacher |
+| createdAt | DateTime | Creation timestamp |
+
+## Enrollment
+
+| Field | Type | Description |
+|---|---|---|
+| id | UUID | Primary key |
+| studentId | UUID | Reference to Student |
+| courseId | UUID | Reference to Course |
+| enrolledAt | DateTime | Enrollment date |
+
+## Attendance
+
+| Field | Type | Description |
+|---|---|---|
+| id | UUID | Primary key |
+| studentId | UUID | Reference to Student |
+| courseId | UUID | Reference to Course |
+| date | DateTime | Attendance date |
+| status | Enum | PRESENT, ABSENT, LATE |
+| markedBy | UUID | Teacher reference |
+
+## Exam
+
+| Field | Type | Description |
+|---|---|---|
+| id | UUID | Primary key |
+| courseId | UUID | Reference to Course |
+| title | String | Exam title |
+| examDate | DateTime | Exam date |
+| totalMarks | Integer | Maximum marks |
+
+## ExamResult
+
+| Field | Type | Description |
+|---|---|---|
+| id | UUID | Primary key |
+| examId | UUID | Reference to Exam |
+| studentId | UUID | Reference to Student |
+| marksObtained | Decimal | Obtained marks |
+| grade | String | Calculated grade |
+
+## FeeRecord
+
+| Field | Type | Description |
+|---|---|---|
+| id | UUID | Primary key |
+| studentId | UUID | Reference to Student |
+| amountDue | Decimal | Total amount due |
+| amountPaid | Decimal | Amount paid |
+| dueDate | DateTime | Payment due date |
+| status | Enum | PENDING, PARTIAL, PAID |
+| createdAt | DateTime | Creation timestamp |
+
+## Database Constraints
+
+- User email must be unique
+- Student enrollment number must be unique
+- Teacher employee number must be unique
+- Course code must be unique
+- Student-course enrollment should be unique
+- Exam results should be unique per exam and student
+- Foreign key relationships must be enforced
+- Sensitive credentials must never be stored in plain text
+---
+
+# Schema Review Decisions
+
+## Attendance Constraints
+
+- A student should not have duplicate attendance records for the same course and date.
+- Attendance status must be limited to PRESENT, ABSENT, or LATE.
+- Attendance records must reference valid students and courses.
+- Only authorized teachers or administrators can create or update attendance.
+
+## Enrollment Constraints
+
+- A student-course combination should not be enrolled more than once.
+- Students can only access their own enrollment and academic information unless authorized otherwise.
+
+## Fee Validation
+
+- Amount due must not be negative.
+- Amount paid must not be negative.
+- Amount paid must not exceed the permitted amount unless an overpayment policy is defined.
+- Fee status should be validated by backend logic.
+- Fee records must reference a valid student.
+
+## Security and Data Integrity
+
+- Foreign key relationships must be enforced.
+- Unique constraints must be applied where required.
+- Backend authorization must be enforced for sensitive operations.
+- Database transactions should be used for operations involving multiple related records.
+---
+
+# Database Relationships
+
+## User Relationships
+
+- A User can have one Student profile or one Teacher profile, depending on the assigned role.
+- An Admin user does not require a Student or Teacher profile.
+
+## Academic Relationships
+
+- A Teacher can be assigned to multiple Courses.
+- A Student can enroll in multiple Courses.
+- A Course can have multiple enrolled Students.
+- Enrollment connects Students and Courses.
+
+## Attendance Relationships
+
+- A Student can have multiple Attendance records.
+- A Course can have multiple Attendance records.
+- Each Attendance record references one Student and one Course.
+- Attendance records should be unique for a Student, Course, and date combination.
+
+## Examination Relationships
+
+- A Course can have multiple Exams.
+- An Exam can have multiple ExamResults.
+- Each ExamResult references one Student and one Exam.
+- A Student should have only one result for a particular Exam.
+
+## Fee Relationships
+
+- A Student can have multiple FeeRecords.
+- Each FeeRecord belongs to one Student.
+- Fee amounts and payment status must be validated by the backend.
+
+## Future Improvements
+
+- Support multiple teachers per course through a CourseTeacher assignment table.
+- Support multiple class sessions per day through a ClassSession table.
+- Add audit logs for sensitive changes.
